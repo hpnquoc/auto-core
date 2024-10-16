@@ -1,5 +1,5 @@
 from torch import nn
-from net.moco import MoCo
+from .moco import MoCo
 from add_on.dinov2.dinov2 import DINOv2
 
 class DDE(nn.Module):

@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.transforms import Compose
 
-from net.DGRN import DGRN
-from net.encoder import DDE
+from .DGRN import DGRN
+from .encoder import DDE
 
 from src.add_on.dinov2.dinov2 import DINOv2
 from src.add_on.dinov2.util.blocks import FeatureFusionBlock, _make_scratch
