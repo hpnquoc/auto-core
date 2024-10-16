@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -8,7 +9,7 @@ class MoCo(nn.Module):
     Build a MoCo model with: a query encoder, a key encoder, and a queue
     https://arxiv.org/abs/1911.05722
     """
-    def __init__(self, base_encoder, dim=256, K=3*256, m=0.999, T=0.07, mlp=False, intermediate_layers=[2, 5, 8, 11]):
+    def __init__(self, base_encoder, dim=256, K=3*256, m=0.999, T=0.07, mlp=False):
         """
         dim: feature dimension (default: 128)
         K: queue size; number of negative keys (default: 65536)
@@ -20,12 +21,11 @@ class MoCo(nn.Module):
         self.K = K
         self.m = m
         self.T = T
-        self.intermediate_layers = intermediate_layers
 
         # create the encoders
         # num_classes is the output fc dimension
-        self.encoder_q = base_encoder
-        self.encoder_k = base_encoder
+        self.encoder_q = base_encoder()
+        self.encoder_k = base_encoder()
 
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)  # initialize
@@ -117,24 +117,24 @@ class MoCo(nn.Module):
         """
         if self.training:
             # compute query features
-            self.encoder_q.prepare_tokens_with_masks(im_q)
-            embedding = self.encoder_q.prepare_tokens_with_masks(im_q)
-            q = self.encoder_q(im_q)
-            inter = self.encoder_q.get_intermediate_layers(im_q, self.intermediate_layers, return_class_token=True)
-
-            # q = nn.functional.normalize(q, dim=1)
+            embedding, q, inter = self.encoder_q(im_q)  # queries: NxC
+            q = nn.functional.normalize(q, dim=1)
 
             # compute key features
             with torch.no_grad():  # no gradient to keys
                 self._momentum_update_key_encoder()  # update the key encoder
 
+                _, k, _ = self.encoder_k(im_k)  # keys: NxC
+                k = nn.functional.normalize(k, dim=1)
 
-                k = self.encoder_k(im_k)
-
-
+            # compute logits
+            # Einstein sum is more intuitive
+            # positive logits: Nx1
             l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+            # negative logits: NxK
             l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
 
+            # logits: Nx(1+K)
             logits = torch.cat([l_pos, l_neg], dim=1)
 
             # apply temperature
@@ -148,8 +148,8 @@ class MoCo(nn.Module):
 
             return embedding, logits, labels, inter
         else:
-            embedding = self.encoder_q.prepare_tokens_with_masks(im_q)
-            inter = self.encoder_q.get_intermediate_layers(im_q, self.intermediate_layers, return_class_token=True)
+            embedding, _, inter = self.encoder_q(im_q)
+
             return embedding, inter
 
 

@@ -1,5 +1,5 @@
 import torch.nn as nn
-from .modules.layers import DCN_layer
+from net.modules.layers import DCN_layer
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(in_channels, out_channels, kernel_size, padding=(kernel_size // 2), bias=bias)

@@ -10,7 +10,7 @@ from utils.dataset_utils import DenoiseTestDataset, DerainDehazeDataset
 from utils.val_utils import AverageMeter, compute_psnr_ssim
 from utils.image_io import save_image_tensor
 
-from net.model import AirNet2 as AirNet
+from net.modules.generator import AWIR as AirNet
 
 
 def test_Denoise(net, dataset, sigma=15):
@@ -28,7 +28,7 @@ def test_Denoise(net, dataset, sigma=15):
             degrad_patch, clean_patch = degrad_patch.cuda(), clean_patch.cuda()
 
             import torchvision
-            from net.util.transform import Resize
+            from add_on.dinov2.util.transform import Resize
             import cv2
             transform = torchvision.transforms.Compose([
                 Resize(
@@ -71,7 +71,7 @@ def test_Derain_Dehaze(net, dataset, task="derain"):
             degrad_patch, clean_patch = degrad_patch.cuda(), clean_patch.cuda()
 
             import torchvision
-            from net.util.transform import Resize
+            from add_on.dinov2.util.transform import Resize
             import cv2
             transform = torchvision.transforms.Compose([
                 Resize(
