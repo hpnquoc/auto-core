@@ -10,7 +10,7 @@ def define_G(opt):
     opt_net = opt["network_G"]
     which_model = opt_net["which_model_G"]
     setting = opt_net["setting"]
-    netG = getattr(modules, which_model)(**setting)
+    netG = getattr(modules.generator, which_model)(**setting)
     return netG
 
 

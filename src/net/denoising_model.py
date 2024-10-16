@@ -8,12 +8,12 @@ import torch.nn as nn
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 import torchvision.utils as tvutils
 from tqdm import tqdm
-from ema_pytorch import EMA
+from add_on.ema_pytorch import EMA
 
-import models.lr_scheduler as lr_scheduler
-import models.networks as networks
-from models.optimizer import Lion
-from models.modules.loss import MatchingLoss
+import net.scheduler as scheduler
+import net.networks as networks
+from net import optimizer as optim
+from net.modules.loss import MatchingLoss
 
 from .base_model import BaseModel
 
@@ -62,35 +62,22 @@ class DenoisingModel(BaseModel):
                 else:
                     if self.rank <= 0:
                         logger.warning("Params [{:s}] will not optimize.".format(k))
+            
+            try:
+                self.optimizer = getattr(optim, train_opt['optimizer'])(
+                    optim_params,
+                    lr=train_opt["lr_G"],
+                    weight_decay=wd_G,
+                    betas=(train_opt["beta1"], train_opt["beta2"])
+                )
 
-            if train_opt['optimizer'] == 'Adam':
-                self.optimizer = torch.optim.Adam(
-                    optim_params,
-                    lr=train_opt["lr_G"],
-                    weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"]),
-                )
-            elif train_opt['optimizer'] == 'AdamW':
-                self.optimizer = torch.optim.AdamW(
-                    optim_params,
-                    lr=train_opt["lr_G"],
-                    weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"]),
-                )
-            elif train_opt['optimizer'] == 'Lion':
-                self.optimizer = Lion(
-                    optim_params, 
-                    lr=train_opt["lr_G"],
-                    weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"]),
-                )
-            else:
+            except AttributeError:
                 print('Not implemented optimizer, default using Adam!')
-                self.optimizer = torch.optim.Adam(
+                self.optimizer = optim.Adam(
                     optim_params,
                     lr=train_opt["lr_G"],
                     weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"]),
+                    betas=(train_opt["beta1"], train_opt["beta2"])
                 )
 
             self.optimizers.append(self.optimizer)
@@ -99,7 +86,7 @@ class DenoisingModel(BaseModel):
             if train_opt["lr_scheme"] == "MultiStepLR":
                 for optimizer in self.optimizers:
                     self.schedulers.append(
-                        lr_scheduler.MultiStepLR_Restart(
+                        scheduler.MultiStepLR_Restart(
                             optimizer,
                             train_opt["lr_steps"],
                             restarts=train_opt["restarts"],
@@ -111,7 +98,7 @@ class DenoisingModel(BaseModel):
             elif train_opt["lr_scheme"] == "CosineAnnealingLR_Restart":
                 for optimizer in self.optimizers:
                     self.schedulers.append(
-                        lr_scheduler.CosineAnnealingLR_Restart(
+                        scheduler.CosineAnnealingLR_Restart(
                             optimizer,
                             train_opt["T_period"],
                             eta_min=train_opt["eta_min"],

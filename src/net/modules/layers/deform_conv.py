@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.nn.modules.utils import _pair
 from torchvision.ops import deform_conv2d
 
+__all__ = ['DCN_layer']
 
 class DCN_layer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1,
