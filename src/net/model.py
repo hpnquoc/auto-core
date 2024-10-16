@@ -7,9 +7,9 @@ from torchvision.transforms import Compose
 from net.DGRN import DGRN
 from net.encoder import DDE
 
-from .dinov2 import DINOv2
-from .util.blocks import FeatureFusionBlock, _make_scratch
-from .util.transform import Resize, NormalizeImage, PrepareForNet
+from src.add_on.dinov2.dinov2 import DINOv2
+from src.add_on.dinov2.util.blocks import FeatureFusionBlock, _make_scratch
+from src.add_on.dinov2.util.transform import Resize, NormalizeImage, PrepareForNet
 
 class DinoDecode(nn.Module):
     def __init__(self, in_shape, out_shape, groups=1, expand=False):

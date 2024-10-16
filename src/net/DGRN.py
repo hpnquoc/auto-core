@@ -1,5 +1,5 @@
 import torch.nn as nn
-from .deform_conv import DCN_layer
+from .modules.layers.deform_conv import DCN_layer
 
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):

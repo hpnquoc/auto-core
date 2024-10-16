@@ -1,6 +1,6 @@
 from torch import nn
 from net.moco import MoCo
-from net.dinov2 import DINOv2
+from add_on.dinov2.dinov2 import DINOv2
 
 class DDE(nn.Module):
     def __init__(
