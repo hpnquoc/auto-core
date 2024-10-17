@@ -1,7 +1,7 @@
-# Copyright (c) OpenMMLab. All rights reserved.
-import logging
+from collections import OrderedDict
 from typing import List, Optional, Sequence, Tuple, Union
 
+import torch
 import torch.nn as nn
 from torch import Tensor
 
@@ -127,9 +127,7 @@ class VGG(nn.Module):
 
     def init_weights(self, pretrained: Optional[str] = None) -> None:
         if isinstance(pretrained, str):
-            logger = logging.getLogger()
-            from utils.checkpoint.checkpont import load_checkpoint
-            load_checkpoint(self, pretrained, strict=False, logger=logger)
+            self.load_network(pretrained, strict=False)
         elif pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
@@ -140,6 +138,21 @@ class VGG(nn.Module):
                     normal_init(m, std=0.01)
         else:
             raise TypeError('pretrained must be a str or None')
+        
+    def load_network(self, _path, _strict):
+        load_net = torch.load(_path)
+        load_net_clean = OrderedDict()  # remove unnecessary 'module.'
+        for k, v in load_net.items():
+            if k.startswith("module."):
+                load_net_clean[k[7:]] = v
+            else:
+                load_net_clean[k] = v
+
+        if isinstance(self, nn.DataParallel) or \
+            isinstance(self, nn.parallel.DistributedDataParallel):
+            self.module.load_state_dict(torch.load(load_net_clean), strict=_strict)
+        else:
+            self.load_state_dict(load_net_clean, strict=_strict)
 
     def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         outs = []
