@@ -2,6 +2,7 @@ import logging
 from collections import OrderedDict
 
 import torch
+import torch.distributed
 import torch.nn as nn
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from add_on.ema_pytorch import EMA
