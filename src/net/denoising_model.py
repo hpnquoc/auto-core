@@ -78,7 +78,7 @@ class DenoisingModel(BaseModel):
                     betas=(train_opt["beta1"], train_opt["beta2"]),
                 )
             elif train_opt['optimizer'] == 'Lion':
-                self.optimizer = Lion(
+                self.optimizer = optim.Lion(
                     optim_params, 
                     lr=train_opt["lr_G"],
                     weight_decay=wd_G,
@@ -93,7 +93,7 @@ class DenoisingModel(BaseModel):
             if train_opt["lr_scheme"] == "MultiStepLR":
                 for optimizer in self.optimizers:
                     self.schedulers.append(
-                        lr_scheduler.MultiStepLR_Restart(
+                        scheduler.MultiStepLR_Restart(
                             optimizer,
                             train_opt["lr_steps"],
                             restarts=train_opt["restarts"],
