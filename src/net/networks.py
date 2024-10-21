@@ -11,6 +11,7 @@ def define_G(opt):
     which_model = opt_net["which_model_G"]
     setting = opt_net["setting"]
     netG = getattr(modules.generator, which_model)(**setting)
+    logger.info("Generator [{:s}] is created.".format(netG.__class__.__name__))
     return netG
 
 
@@ -20,6 +21,7 @@ def define_D(opt):
     which_model = opt_net["which_model_D"]
     setting = opt_net["setting"]
     netD = getattr(modules, which_model)(**setting)
+    logger.info("Discriminator [{:s}] is created.".format(netD.__class__.__name__))
     return netD
 
 

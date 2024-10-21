@@ -62,23 +62,30 @@ class DenoisingModel(BaseModel):
                 else:
                     if self.rank <= 0:
                         logger.warning("Params [{:s}] will not optimize.".format(k))
-            
-            try:
-                self.optimizer = getattr(optim, train_opt['optimizer'])(
-                    optim_params,
-                    lr=train_opt["lr_G"],
-                    weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"])
-                )
 
-            except AttributeError:
-                print('Not implemented optimizer, default using Adam!')
-                self.optimizer = optim.Adam(
+            if train_opt['optimizer'] == 'Adam':
+                self.optimizer = torch.optim.Adam(
                     optim_params,
                     lr=train_opt["lr_G"],
                     weight_decay=wd_G,
-                    betas=(train_opt["beta1"], train_opt["beta2"])
+                    betas=(train_opt["beta1"], train_opt["beta2"]),
                 )
+            elif train_opt['optimizer'] == 'AdamW':
+                self.optimizer = torch.optim.AdamW(
+                    optim_params,
+                    lr=train_opt["lr_G"],
+                    weight_decay=wd_G,
+                    betas=(train_opt["beta1"], train_opt["beta2"]),
+                )
+            elif train_opt['optimizer'] == 'Lion':
+                self.optimizer = Lion(
+                    optim_params, 
+                    lr=train_opt["lr_G"],
+                    weight_decay=wd_G,
+                    betas=(train_opt["beta1"], train_opt["beta2"]),
+                )
+            else:
+                print('Not implemented optimizer, default using Adam!')
 
             self.optimizers.append(self.optimizer)
 
@@ -86,24 +93,13 @@ class DenoisingModel(BaseModel):
             if train_opt["lr_scheme"] == "MultiStepLR":
                 for optimizer in self.optimizers:
                     self.schedulers.append(
-                        scheduler.MultiStepLR_Restart(
+                        lr_scheduler.MultiStepLR_Restart(
                             optimizer,
                             train_opt["lr_steps"],
                             restarts=train_opt["restarts"],
                             weights=train_opt["restart_weights"],
                             gamma=train_opt["lr_gamma"],
                             clear_state=train_opt["clear_state"],
-                        )
-                    )
-            elif train_opt["lr_scheme"] == "CosineAnnealingLR_Restart":
-                for optimizer in self.optimizers:
-                    self.schedulers.append(
-                        scheduler.CosineAnnealingLR_Restart(
-                            optimizer,
-                            train_opt["T_period"],
-                            eta_min=train_opt["eta_min"],
-                            restarts=train_opt["restarts"],
-                            weights=train_opt["restart_weights"],
                         )
                     )
             elif train_opt["lr_scheme"] == "TrueCosineAnnealingLR":
@@ -113,31 +109,36 @@ class DenoisingModel(BaseModel):
                             optimizer, 
                             T_max=train_opt["niter"],
                             eta_min=train_opt["eta_min"])
-                    )
+                    ) 
             else:
                 raise NotImplementedError("MultiStepLR learning rate scheme is enough.")
 
             self.ema = EMA(self.model, beta=0.995, update_every=10).to(self.device)
             self.log_dict = OrderedDict()
 
-    def feed_data(self, LQ, GT=None):
-        self.LQ = LQ.to(self.device)    # noisy_state
+    def feed_data(self, state, LQ, GT=None, text_context=None, image_context=None):
+        self.state = state.to(self.device)    # noisy_state
+        self.condition = LQ.to(self.device)  # LQ
         if GT is not None:
-            self.GT = GT.to(self.device)  # GT
+            self.state_0 = GT.to(self.device)  # GT
+        self.text_context = text_context
+        self.image_context = image_context
 
     def optimize_parameters(self, step, timesteps, sde=None):
+        sde.set_mu(self.condition)
+
         self.optimizer.zero_grad()
 
         timesteps = timesteps.to(self.device)
-        weights = sde.weights(timesteps)
 
-        noise = self.model(self.LQ, timesteps.squeeze())
+        # Get noise and score
+        noise = sde.noise_fn(self.state, timesteps.squeeze(), text_context=self.text_context, image_context=self.image_context)
         score = sde.get_score_from_noise(noise, timesteps)
 
         # Learning the maximum likelihood objective for state x_{t-1}
-        xt_1_expection = sde.reverse_sde_step_mean(self.LQ, score, timesteps)
-        xt_1_optimum = sde.reverse_optimum_step(self.LQ, self.GT, timesteps)
-        loss = self.weight * self.loss_fn(xt_1_expection, xt_1_optimum, weights)
+        xt_1_expection = sde.reverse_sde_step_mean(self.state, score, timesteps)
+        xt_1_optimum = sde.reverse_optimum_step(self.state, self.state_0, timesteps)
+        loss = self.weight * self.loss_fn(xt_1_expection, xt_1_optimum)
 
         loss.backward()
         self.optimizer.step()
@@ -146,26 +147,27 @@ class DenoisingModel(BaseModel):
         # set log
         self.log_dict["loss"] = loss.item()
 
-    def test(self, sde=None, sigma=-1, save_states=False):
-        timesteps = sde.T if sigma < 0 else sde.get_optimal_timestep(sigma)
+    def test(self, sde=None, mode='posterior', save_states=False):
+        sde.set_mu(self.condition)
 
         self.model.eval()
         with torch.no_grad():
-            # self.output = sde.reverse_sde(self.LQ, T=timesteps, save_states=save_states)
-            self.output = sde.reverse_ode(self.LQ, T=timesteps, save_states=save_states)
+            if mode == 'sde':
+                self.output = sde.reverse_sde(self.state, save_states=save_states, text_context=self.text_context, image_context=self.image_context)
+            else:
+                self.output = sde.reverse_posterior(self.state, save_states=save_states, text_context=self.text_context, image_context=self.image_context)
 
         self.model.train()
-
 
     def get_current_log(self):
         return self.log_dict
 
     def get_current_visuals(self, need_GT=True):
         out_dict = OrderedDict()
-        out_dict["Input"] = self.LQ.detach()[0].float().cpu()
+        out_dict["Input"] = self.condition.detach()[0].float().cpu()
         out_dict["Output"] = self.output.detach()[0].float().cpu()
         if need_GT:
-            out_dict["GT"] = self.GT.detach()[0].float().cpu()
+            out_dict["GT"] = self.state_0.detach()[0].float().cpu()
         return out_dict
 
     def print_network(self):

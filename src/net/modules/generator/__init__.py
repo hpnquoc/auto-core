@@ -1,7 +1,7 @@
-from .airnet.model import AirNet
 from .awir.model import AWIR
-from .daclip_ir.nafnet import ConditionalNAFNet
-from .daclip_ir.unet import ConditionalUNet
+from .airnet.model import AirNet
+from .ir_sde.nafnet import ConditionalNAFNet
+from .ir_sde.unet import ConditionalUNet
 
 __all__ = [
     'AirNet',

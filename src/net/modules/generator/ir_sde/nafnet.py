@@ -4,12 +4,7 @@ import torch.nn.functional as F
 from einops import rearrange, reduce
 
 from net.modules.generator.module_util import SinusoidalPosEmb, LayerNorm, exists
-
-
-class SimpleGate(nn.Module):
-    def forward(self, x):
-        x1, x2 = x.chunk(2, dim=1)
-        return x1 * x2
+from net.modules.layers import SimpleGate
 
 
 class NAFBlock(nn.Module):
