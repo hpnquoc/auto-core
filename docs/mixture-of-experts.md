@@ -1,4 +1,4 @@
-<img src="./data/moe.png" width="600px"></img>
+<img src="./data/moe/moe.png" width="600px"></img>
 
 ## Sparsely Gated Mixture of Experts - Pytorch
 
