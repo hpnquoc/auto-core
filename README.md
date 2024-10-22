@@ -14,5 +14,5 @@ pip install -r requirements.txt
 or
 
 ```
-./install.sh
+./script/env_install.sh
 ```
