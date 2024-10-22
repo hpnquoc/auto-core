@@ -1,0 +1,1 @@
+python src/utils/utils_video.py --video_path "dummy/video/dramatic_kitten_meme.mp4" --output_path output/video --frame_rate 1 --name frame --ext png

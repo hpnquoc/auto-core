@@ -7,7 +7,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision.transforms import ToPILImage, Compose, RandomCrop, ToTensor
 
-from utils.image_utils import random_augmentation, crop_img
+from utils.utils_image import random_augmentation, crop_img
 from utils.degradation_utils import Degradation
 
 
