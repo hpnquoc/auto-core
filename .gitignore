@@ -130,6 +130,8 @@ ENV/
 env.bak/
 venv.bak/
 exp/
+data/
+zoo/
 project/
 projects/
 test/
