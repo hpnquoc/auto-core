@@ -1,2 +1,2 @@
-from . import vision
-from . import text
+from . import vision as vision
+from . import text as text
