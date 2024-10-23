@@ -5,11 +5,12 @@ import sys
 import math
 
 import yaml
+import traceback
 
 try:
     from utils.utils_file import OrderedYaml
 except ImportError:
-    print("Error: src/ not found")
+    traceback.print_exc()
     pass
 
 Loader, Dumper = OrderedYaml()
@@ -64,7 +65,7 @@ def parse(opt_path, is_train=True):
         osp.join(__file__, osp.pardir, osp.pardir, osp.pardir, osp.pardir)
     )
     path = osp.abspath(__file__)
-    config_dir = path.split("/")[-2]
+    config_dir = os.path.abspath(os.path.join(path, os.pardir))
     if is_train:
         experiments_root = osp.join(
             opt["path"]["root"], "experiments", config_dir, opt["name"]

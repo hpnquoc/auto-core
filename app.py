@@ -6,16 +6,19 @@ import torch
 from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, InterpolationMode
 import torchvision.utils as tvutils
+import traceback
 
-sys.path.append(f"{os.getcwd()}/src")
-sys.path.append(f"{os.getcwd()}/src/add_on/")
+sys.path.append(os.path.join(os.getcwd(), 'src'))
+sys.path.append(os.path.join(os.getcwd(), 'src', 'add_on'))
 
-import options as option
-from net import create_model, pipeline
-
-
-from add_on import open_clip
-import utils as util
+try:
+    from net import create_model, pipeline
+    from add_on import open_clip
+    import utils as util
+    import options as option
+except ImportError:
+    traceback.print_exc()
+    pass
 
 # options
 parser = argparse.ArgumentParser()
@@ -75,12 +78,21 @@ def restore(image):
         degra_context = degra_context.float()
 
     # Resize image to fixed height
-    transform = Compose([
-        FixedWidthResize(640)
-    ])
-    image = transform(image)
+    h, w, c = image.shape
+    if h > 256:
+        transform = Compose([
+            FixedHeightResize(256)
+        ])
+        image = transform(image)
+    # if w > 640:
+    #     transform = Compose([
+    #         FixedWidthResize(640)
+    #     ])
+    #     image = transform(image)
+    else:
+        image = torch.tensor(image, dtype=torch.float32)
 
-    LQ_tensor = torch.tensor(image, dtype=torch.float32).clone().detach().permute(2, 0, 1).unsqueeze(0)
+    LQ_tensor = image.permute(2, 0, 1).unsqueeze(0)
     noisy_tensor = sde.noise_state(LQ_tensor)
     model.feed_data(noisy_tensor, LQ_tensor, text_context=degra_context, image_context=image_context)
     model.test(sde)
@@ -88,7 +100,7 @@ def restore(image):
     output = util.utils_image.tensor2img(visuals["Output"].squeeze())
     return output[:, :, [2, 1, 0]]
 
-examples=[os.path.join(os.path.dirname(__file__), f"images/{i}.jpg") for i in range(1, 11)]
+examples=[os.path.join(os.path.dirname(__file__), f"dummy/images/{i}.jpg") for i in range(1, 11)]
 interface = gr.Interface(fn=restore, inputs="image", outputs="image", title="Image Restoration with DA-CLIP", examples=examples)
 interface.launch()
 
