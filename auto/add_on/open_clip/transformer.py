@@ -518,7 +518,6 @@ class VisionTransformer(nn.Module):
             x = self.conv1(x)  # shape = [*, width, grid, grid]
             x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
             x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
-
         # class embeddings and positional embeddings
         x = torch.cat(
             [self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device),
@@ -546,12 +545,15 @@ class VisionTransformer(nn.Module):
         if self.proj is not None:
             pooled = pooled @ self.proj
 
+        if self.output_tokens and output_hiddens:
+            return pooled, tokens, hiddens
+
         if self.output_tokens:
             return pooled, tokens
 
         if output_hiddens:
             return pooled, hiddens
-            
+        
         return pooled
 
 

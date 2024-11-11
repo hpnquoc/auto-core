@@ -1,5 +1,5 @@
 from PIL import Image
-import src.add_on.depth_pro as depth_pro
+import auto.add_on.depth_pro as depth_pro
 import matplotlib.pyplot as plt
 import cv2
 

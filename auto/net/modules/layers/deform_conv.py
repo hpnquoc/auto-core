@@ -1,12 +1,19 @@
 import math
+from loguru import logger as logging
 
 import torch
 import torch.nn as nn
 from torch.nn.modules.utils import _pair
 from torchvision.ops import deform_conv2d
 
+try:
+    import core 
+except ImportError:
+    logging.error("Please make sure to run your code from the root directory of the project.")
+
 __all__ = ['DCN_layer']
 
+core.layer_register.register('dconv')
 class DCN_layer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1,
                  groups=1, deformable_groups=1, bias=True, extra_offset_mask=True):

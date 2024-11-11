@@ -4,8 +4,8 @@ import torch
 from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, InterpolationMode
 
-sys.path.append(f"{os.getcwd()}/src")
-sys.path.append(f"{os.getcwd()}/src/add_on/")
+sys.path.append(f"{os.getcwd()}/auto")
+sys.path.append(f"{os.getcwd()}/auto/add_on/")
 
 import options as option
 from net import create_model, pipeline
@@ -15,8 +15,8 @@ import utils as util
 
 # options
 parser = argparse.ArgumentParser()
-parser.add_argument("--opt", type=str, default='src/configs/test.yml', help="Path to options YMAL file.")
-parser.add_argument("--dir_image", type=str, default='images/', help="Path to image file.")
+parser.add_argument("--opt", type=str, default='auto/configs/test.yml', help="Path to options YMAL file.")
+parser.add_argument("--dir_image", type=str, default='dummy/images/', help="Path to image file.")
 parser.add_argument("--dir_output", type=str, default='output/', help="Path to output file.")
 parser.add_argument("--ext", type=str, default='jpg', help="Extension of image file.")
 opt = option.parse(parser.parse_args().opt, is_train=False)

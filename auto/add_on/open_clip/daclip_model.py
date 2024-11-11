@@ -20,6 +20,7 @@ class DaCLIP(nn.Module):
         self.clip = clip_model
         self.visual = clip_model.visual
         self.visual_control = copy.deepcopy(clip_model.visual)
+        self.visual_control.output_tokens = True
         self.visual_control.transformer = ControlTransformer(self.visual_control.transformer)
         self.logit_scale = copy.deepcopy(clip_model.logit_scale)
 
@@ -45,7 +46,28 @@ class DaCLIP(nn.Module):
 
     def encode_image(self, image, control=False, normalize: bool = False):
         if control:
-            degra_features, hiddens = self.visual_control(image, output_hiddens=True)
+            degra_features, tokens, hiddens = self.visual_control(image, output_hiddens=True)
+            tokens = tokens.permute(0, 2, 1)
+            tokens = tokens.reshape(tokens.size(0), tokens.size(1), 7, 7).squeeze(0)
+            print(tokens.shape)
+            # tokens = tokens.reshape(192, 14, 14)
+            print(tokens[0].shape)
+            import cv2
+            for i in range(tokens.size(0)):
+                t = tokens[i].cpu().detach().numpy()
+                t = cv2.resize(t, (224, 224), interpolation=cv2.INTER_NEAREST)
+                t = np.array([t, t, t])
+                t = t.transpose(1, 2, 0)
+
+                i = image.squeeze(0).permute(1,2,0).cpu().detach().numpy()
+                # temp = image[:, :, 0]
+                # image[:, :, 0] = image[:, :, 2]
+                # image[:, :, 2] = temp
+                print(i.shape)
+                t = np.concatenate([i, t], axis=1)
+                print(t.shape)
+                cv2.imshow('tokens', t)
+                cv2.waitKey(0)
             image_features = self.clip.visual(image, control=hiddens)
             
             image_features = F.normalize(image_features, dim=-1) if normalize else image_features

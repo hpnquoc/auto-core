@@ -1,5 +1,5 @@
-from .deform_conv import DCN_layer
-from .activation import SimpleGate
+from .deform_conv import *
+from .activation import *
 
 __all__ = [
     # conv

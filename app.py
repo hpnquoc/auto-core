@@ -8,8 +8,8 @@ from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normal
 import torchvision.utils as tvutils
 import traceback
 
-sys.path.append(os.path.join(os.getcwd(), 'src'))
-sys.path.append(os.path.join(os.getcwd(), 'src', 'add_on'))
+sys.path.append(os.path.join(os.getcwd(), 'auto'))
+sys.path.append(os.path.join(os.getcwd(), 'auto', 'add_on'))
 
 try:
     from net import create_model, pipeline
