@@ -136,6 +136,7 @@ project/
 projects/
 test/
 output/
+.idea/
 
 # Spyder project settings
 .spyderproject
