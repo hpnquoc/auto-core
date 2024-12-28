@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import einops
 import numpy as np
-import sys
+
+from net.modules.layers.filter import GrayscaleLayer
 
 
 class MatchingLoss(nn.Module):
@@ -28,3 +29,25 @@ class MatchingLoss(nn.Module):
 
         return loss.mean()
 
+class StdLoss(nn.Module):
+    def __init__(self):
+        """
+        Loss on the variance of the image.
+        Works in the grayscale.
+        If the image is smooth, gets zero
+        """
+        super(StdLoss, self).__init__()
+        blur = (1 / 25) * np.ones((5, 5))
+        blur = blur.reshape(1, 1, blur.shape[0], blur.shape[1])
+        self.mse = nn.MSELoss()
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.blur = nn.Parameter(data=torch.FloatTensor(blur).to(device), requires_grad=False)
+        image = np.zeros((5, 5))
+        image[2, 2] = 1
+        image = image.reshape(1, 1, image.shape[0], image.shape[1])
+        self.image = nn.Parameter(data=torch.FloatTensor(image).to(device), requires_grad=False)
+        self.gray_scale = GrayscaleLayer()
+
+    def forward(self, x):
+        x = self.gray_scale(x)
+        return self.mse(F.conv2d(x, self.image), F.conv2d(x, self.blur))

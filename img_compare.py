@@ -175,7 +175,7 @@ class ImageComparisonApp(QMainWindow):
         diff = cv2.absdiff(img1, img2)
 
         # Apply a threshold to highlight differences
-        _, thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(diff, 15, 255, cv2.THRESH_BINARY)
 
         # Convert to QImage to display in PyQt6
         height, width = thresh.shape

@@ -10,7 +10,7 @@ __all__ = [
 
 class I2I(abc.ABC):
     def __init__(self, enc='', device=None):
-        self.enc = 
+        # self.enc = 
         self.device = device
 
     @abc.abstractmethod

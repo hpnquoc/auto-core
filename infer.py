@@ -24,14 +24,15 @@ opt = option.parse(parser.parse_args().opt, is_train=False)
 opt = option.dict_to_nonedict(opt)
 
 # load pretrained model by default
-model = create_model(opt)
-device = model.device
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# model = create_model(opt)
+# device = model.device
 
 clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
 clip_model = clip_model.to(device)
 
-sde = pipeline.IRSDE(max_sigma=opt["sde"]["max_sigma"], T=opt["sde"]["T"], schedule=opt["sde"]["schedule"], eps=opt["sde"]["eps"], device=device)
-sde.set_model(model.model)
+# sde = pipeline.IRSDE(max_sigma=opt["sde"]["max_sigma"], T=opt["sde"]["T"], schedule=opt["sde"]["schedule"], eps=opt["sde"]["eps"], device=device)
+# sde.set_model(model.model)
 
 def clip_transform(np_image, resolution=224):
     pil_image = Image.fromarray((np_image * 255).astype(np.uint8))
@@ -43,25 +44,13 @@ def clip_transform(np_image, resolution=224):
 
 import math
 from torchvision.transforms import functional as F
-class FixedHeightResize:
-    def __init__(self, size):
-        self.size = size
-        
-    def __call__(self, img):
-        h, w, c = img.shape
-        aspect_ratio = float(h) / float(w)
-        new_w = math.ceil(self.size / aspect_ratio)
-        return F.resize(torch.tensor(img, dtype=torch.float32).permute(2,0,1), (self.size, new_w)).permute(1,2,0)
 
-class FixedWidthResize:
-    def __init__(self, size):
-        self.size = size
-        
-    def __call__(self, img):
-        h, w, c = img.shape
-        aspect_ratio = float(w) / float(h)
-        new_h = math.ceil(self.size / aspect_ratio)
-        return F.resize(torch.tensor(img, dtype=torch.float32).permute(2,0,1), (new_h, self.size)).permute(1,2,0)
+def resize(image, size):
+    #resize keeping aspect ratio
+    h, w, c = image.shape
+    aspect_ratio = float(h) / float(w)
+    new_w = math.ceil(size / aspect_ratio)
+    return F.resize(torch.tensor(image, dtype=torch.float32).permute(2,0,1), (size, new_w)).permute(1,2,0)
 
 def infer(image):
     image = image / 255.
@@ -74,27 +63,17 @@ def infer(image):
         degra_context = degra_context.float()
 
     # Resize image to fixed height
-    h, w, c = image.shape
-    if h > 640:
-        transform = Compose([
-            FixedHeightResize(640)
-        ])
-        image = transform(image)
-    if w > 640:
-        transform = Compose([
-            FixedWidthResize(640)
-        ])
-        image = transform(image)
-    else:
-        image = torch.tensor(image, dtype=torch.float32)
-    LQ_tensor = image.permute(2, 0, 1).unsqueeze(0)
-    noisy_tensor = sde.noise_state(LQ_tensor)
-    model.feed_data(noisy_tensor, LQ_tensor, text_context=degra_context, image_context=image_context)
-    model.test(sde)
-    visuals = model.get_current_visuals(need_GT=False)
-    output = util.utils_image.tensor2img(visuals["Output"].squeeze())
-    image = (image * 255)
-    return output[:, :, [2, 1, 0]], np.array(image, dtype=np.uint8)
+    image = resize(image, 256)
+    print(image_context.shape)
+    print(degra_context.shape)
+    LQ_tensor = image.permute(2, 0, 1).unsqueeze(0) # B, C, H, W
+    # noisy_tensor = sde.noise_state(LQ_tensor)
+    # model.feed_data(noisy_tensor, LQ_tensor, text_context=degra_context, image_context=image_context)
+    # model.test(sde)
+    # visuals = model.get_current_visuals(need_GT=False)
+    # output = util.utils_image.tensor2img(visuals["Output"].squeeze())
+    # image = (image * 255)
+    # return output[:, :, [2, 1, 0]], np.array(image, dtype=np.uint8)
 
 if __name__ == "__main__":
     import cv2
@@ -111,12 +90,12 @@ if __name__ == "__main__":
     print(f"Processing {len(img_list)} images...")
     for img in img_list:
         image = cv2.imread(img)
-        output, image = infer(image)
+        infer(image)
         # cv2.imshow("output", output)
         # cv2.imshow("input", image)
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
-        cv2.imwrite(f"{dir_resized}{os.path.basename(img)}", image)
-        cv2.imwrite(f"{dir_output}{os.path.basename(img)}", output)
+        # cv2.imwrite(f"{dir_resized}{os.path.basename(img)}", image)
+        # cv2.imwrite(f"{dir_output}{os.path.basename(img)}", output)
 
 

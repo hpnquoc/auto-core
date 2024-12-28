@@ -48,10 +48,10 @@ class DaCLIP(nn.Module):
         if control:
             degra_features, tokens, hiddens = self.visual_control(image, output_hiddens=True)
             tokens = tokens.permute(0, 2, 1)
-            tokens = tokens.reshape(tokens.size(0), tokens.size(1), 7, 7).squeeze(0)
-            print(tokens.shape)
+            tokens = tokens.reshape(tokens.size(0), tokens.size(1), self.visual.grid_size[0], self.visual.grid_size[1]).squeeze(0)
+            # print(tokens.shape)
             # tokens = tokens.reshape(192, 14, 14)
-            print(tokens[0].shape)
+            # print(tokens[0].shape)
             import cv2
             for i in range(tokens.size(0)):
                 t = tokens[i].cpu().detach().numpy()
@@ -63,11 +63,11 @@ class DaCLIP(nn.Module):
                 # temp = image[:, :, 0]
                 # image[:, :, 0] = image[:, :, 2]
                 # image[:, :, 2] = temp
-                print(i.shape)
-                t = np.concatenate([i, t], axis=1)
-                print(t.shape)
-                cv2.imshow('tokens', t)
-                cv2.waitKey(0)
+                # print(i.shape)
+                # t = np.concatenate([i, t], axis=1)
+                # print(t.shape)
+                # cv2.imshow('tokens', t)
+                # cv2.waitKey(0)
             image_features = self.clip.visual(image, control=hiddens)
             
             image_features = F.normalize(image_features, dim=-1) if normalize else image_features
